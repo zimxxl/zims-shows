@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Watch List</title>
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --surface: #16161a;
+    --surface2: #1e1e24;
+    --border: rgba(255,255,255,0.08);
+    --border2: rgba(255,255,255,0.14);
+    --text: #f0f0f0;
+    --muted: #888;
+    --accent: #e85d4a;
+    --accent2: #ff8c7a;
+    --done: #4caf82;
+    --watching: #e8a93a;
+    --dropped: #e85d4a;
+    --radius: 10px;
+    --radius-sm: 6px;
+  }
+  
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 15px; min-height: 100vh; }
+  
+  header { padding: 2rem 1.5rem 1rem; border-bottom: 1px solid var(--border); }
+  header h1 { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.5px; color: var(--accent2); }
+  header p { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  
+  .tab-container { display: flex; gap: 1rem; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); }
+  .tab-btn { background: transparent; border: none; color: var(--muted); cursor: pointer; font-size: 14px; font-weight: 600; padding: 8px 0; border-bottom: 2px solid transparent; transition: all 0.15s; }
+  .tab-btn.active { color: var(--accent2); border-bottom-color: var(--accent2); }
+  .tab-btn:hover { color: var(--text); }
+  
+  .stats { display: flex; gap: 10px; padding: 1rem 1.5rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 8px 14px; font-size: 12px; }
+  .stat span { display: block; font-size: 18px; font-weight: 700; margin-bottom: 1px; }
+  .stat.s-done span { color: var(--done); }
+  .stat.s-watch span { color: var(--watching); }
+  .stat.s-drop span { color: var(--dropped); }
+  .stat.s-total span { color: var(--accent2); }
+  .stat.s-top span { color: var(--accent); }
+  
+  .controls { padding: 1rem 1.5rem; display: flex; gap: 8px; flex-wrap: wrap; border-bottom: 1px solid var(--border); position: sticky; top: 0; background: var(--bg); z-index: 10; }
+  .controls input, .controls select {
+    background: var(--surface); border: 1px solid var(--border2); border-radius: var(--radius-sm);
+    color: var(--text); padding: 8px 12px; font-size: 13px; outline: none;
+  }
+  .controls input { flex: 1; min-width: 180px; }
+  .controls input:focus, .controls select:focus { border-color: var(--accent); }
+  .controls select option { background: #1e1e24; }
+  
+  .result-count { padding: 8px 1.5rem; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--border); }
+  
+  .top-ten-header { padding: 1.5rem; border-bottom: 1px solid var(--border); }
+  .top-ten-header h2 { font-size: 1.3rem; color: var(--accent2); margin-bottom: 0.5rem; }
+  .top-ten-header p { font-size: 13px; color: var(--muted); }
+  
+  .list { padding: 0.5rem 1rem 4rem; display: flex; flex-direction: column; gap: 6px; }
+  
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 12px 14px; cursor: pointer; transition: border-color 0.15s;
+  }
+  .card:hover { border-color: var(--border2); }
+  .card.open { border-color: var(--accent); }
+  .card.top-ten-card { border-color: var(--accent); background: rgba(232, 93, 74, 0.05); }
+  
+  .card-top { display: flex; align-items: flex-start; gap: 10px; }
+  .card-rank { font-size: 12px; color: var(--accent); font-weight: 700; min-width: 26px; padding-top: 2px; }
+  .card-num { font-size: 11px; color: var(--muted); min-width: 26px; padding-top: 2px; }
+  .card-main { flex: 1; min-width: 0; }
+  .card-title { font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-orig { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .card-right { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; flex-shrink: 0; }
+  
+  .status-pill { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 99px; }
+  .sp-done    { background: rgba(76,175,130,0.15); color: var(--done); }
+  .sp-watching{ background: rgba(232,169,58,0.15); color: var(--watching); }
+  .sp-dropped { background: rgba(232,93,74,0.15); color: var(--dropped); }
+  
+  .type-pill { font-size: 10px; padding: 2px 7px; border-radius: 99px; background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+  
+  .btn-edit {
+    background: none; border: none; color: var(--muted); cursor: pointer;
+    font-size: 11px; font-weight: 600; text-decoration: underline; padding: 2px 4px;
+    transition: color 0.1s;
+  }
+  .btn-edit:hover { color: var(--accent2); }
+  
+  .card-body { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .card.open .card-body { display: block; }
+  
+  .card-progress { font-size: 12px; color: var(--watching); margin-bottom: 8px; }
+  .card-summary { font-size: 13px; color: #ccc; line-height: 1.6; margin-bottom: 10px; }
+  .genres { display: flex; flex-wrap: wrap; gap: 5px; }
+  .genre-tag { font-size: 11px; padding: 3px 9px; border-radius: 99px; background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+  
+  .edit-panel { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border2); cursor: default; }
+  .card.edit-open .edit-panel { display: block; }
+  
+  .edit-grid { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+  .edit-field { display: flex; flex-direction: column; gap: 4px; }
+  .edit-field label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; }
+  .edit-field input, .edit-field select, .edit-field textarea {
+    background: var(--surface2); border: 1px solid var(--border2); border-radius: var(--radius-sm);
+    color: var(--text); padding: 6px 10px; font-size: 13px; outline: none; font-family: inherit;
+  }
+  .edit-field input:focus, .edit-field select:focus, .edit-field textarea:focus { border-color: var(--accent); }
+  .edit-field textarea { resize: vertical; min-height: 60px; }
+  
+  .edit-actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+  .btn-action {
+    padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: var(--radius-sm); cursor: pointer; border: none;
+  }
+  .btn-save { background: var(--done); color: #fff; }
+  .btn-save:hover { opacity: 0.9; }
+  .btn-cancel { background: transparent; color: var(--muted); border: 1px solid var(--border2); }
+  .btn-cancel:hover { background: rgba(255,255,255,0.03); color: var(--text); }
+  .btn-delete { background: var(--dropped); color: #fff; }
+  .btn-delete:hover { opacity: 0.9; }
+  .btn-add-top { background: var(--accent); color: #fff; }
+  .btn-add-top:hover { opacity: 0.9; }
+  .btn-remove-top { background: var(--dropped); color: #fff; }
+  .btn-remove-top:hover { opacity: 0.9; }
+  
+  .fixed-note { font-size: 11px; color: var(--done); margin-top: 4px; }
+  
+  .top-ten-list { padding: 1rem; }
+  .top-ten-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px; cursor: grab; transition: opacity 0.1s; }
+  .top-ten-item:active { cursor: grabbing; }
+  .top-ten-rank { font-size: 18px; font-weight: 700; color: var(--accent2); min-width: 30px; }
+  .top-ten-info { flex: 1; }
+  .top-ten-title { font-weight: 600; font-size: 14px; }
+  .top-ten-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .btn-remove-rank { background: var(--dropped); color: #fff; padding: 4px 8px; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 11px; }
+  .btn-remove-rank:hover { opacity: 0.9; }
+  
+  .add-show-form { padding: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin: 1rem 1.5rem; }
+  .form-title { font-size: 14px; font-weight: 600; margin-bottom: 1rem; color: var(--accent2); }
+  
+  .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: center; justify-content: center; }
+  .modal.show { display: flex; }
+  .modal-content { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem; max-width: 500px; width: 90%; max-height: 90vh; overflow-y: auto; }
+  .modal-header { font-size: 16px; font-weight: 600; margin-bottom: 1rem; color: var(--accent2); }
+  .modal-close { position: absolute; top: 1rem; right: 1rem; background: none; border: none; color: var(--muted); cursor: pointer; font-size: 20px; }
+  
+  @media (min-width: 600px) {
+    .list { padding: 0.75rem 1.5rem 4rem; }
+    .card-top { gap: 14px; }
+    .card-title { font-size: 15px; white-space: normal; }
+    .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .edit-field.full-width { grid-column: span 2; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>My Watch List</h1>
+  <p>Manage your shows and rank your top 10</p>
+</header>
+
+<div class="tab-container">
+  <button class="tab-btn active" onclick="switchTab('all-shows')">All Shows</button>
+  <button class="tab-btn" onclick="switchTab('top-ten')">Top 10</button>
+</div>
+
+<div id="all-shows-tab" class="tab-content">
+  <div class="stats">
+    <div class="stat s-total"><span id="st-total">0</span>Total</div>
+    <div class="stat s-done"><span id="st-done">0</span>Done</div>
+    <div class="stat s-watch"><span id="st-watch">0</span>Watching</div>
+    <div class="stat s-drop"><span id="st-drop">0</span>Dropped</div>
+  </div>
+
+  <div class="controls">
+    <input type="search" id="search" placeholder="Search titles, genres, summaries…" oninput="filter()">
+    <select id="fStatus" onchange="filter()">
+      <option value="">All statuses</option>
+      <option value="done">Done</option>
+      <option value="watching">Watching</option>
+      <option value="dropped">Dropped</option>
+    </select>
+    <select id="fType" onchange="filter()">
+      <option value="">All types</option>
+      <option value="Anime">Anime</option>
+      <option value="Movie">Movie</option>
+      <option value="Manga">Manga</option>
+      <option value="Special">Special</option>
+    </select>
+    <select id="fGenre" onchange="filter()">
+      <option value="">All genres</option>
+      <option>Action</option><option>Adventure</option><option>Comedy</option><option>Drama</option>
+      <option>Fantasy</option><option>Horror</option><option>Mecha</option><option>Music</option>
+      <option>Mystery</option><option>Psychological</option><option>Romance</option>
+      <option>Sci-Fi</option><option>Slice of Life</option><option>Sports</option>
+      <option>Supernatural</option><option>Thriller</option>
+    </select>
+    <button class="btn-action" style="background: var(--accent2); color: #000; margin-left: auto;" onclick="openAddShowModal()">+ Add Show</button>
+  </div>
+
+  <div class="result-count" id="rcount"></div>
+  <div class="list" id="list"></div>
+</div>
+
+<div id="top-ten-tab" class="tab-content" style="display: none;">
+  <div class="top-ten-header">
+    <h2>Top 10 Favorite Shows</h2>
+    <p>Drag to reorder or click the X to remove</p>
+  </div>
+  <div class="list top-ten-list" id="top-ten-list"></div>
+</div>
+
+<!-- Add Show Modal -->
+<div class="modal" id="addShowModal">
+  <div class="modal-content">
+    <button class="modal-close" onclick="closeAddShowModal()">×</button>
+    <div class="modal-header">Add New Show</div>
+    <form onsubmit="addShow(event)">
+      <div class="edit-grid">
+        <div class="edit-field">
+          <label>Title</label>
+          <input type="text" id="newTitle" required>
+        </div>
+        <div class="edit-field">
+          <label>Original Title</label>
+          <input type="text" id="newOrig">
+        </div>
+        <div class="edit-field">
+          <label>Type</label>
+          <select id="newType" required>
+            <option value="">Select type</option>
+            <option value="Anime">Anime</option>
+            <option value="Movie">Movie</option>
+            <option value="Manga">Manga</option>
+            <option value="Special">Special</option>
+          </select>
+        </div>
+        <div class="edit-field">
+          <label>Status</label>
+          <select id="newStatus" required>
+            <option value="watching">Watching</option>
+            <option value="done">Done</option>
+            <option value="dropped">Dropped</option>
+          </select>
+        </div>
+        <div class="edit-field">
+          <label>Progress (e.g., "Ep 5" or "S2 Ep 3")</label>
+          <input type="text" id="newProgress">
+        </div>
+        <div class="edit-field">
+          <label>Genres</label>
+          <input type="text" id="newGenres" placeholder="Comma-separated (e.g., Action, Romance)">
+        </div>
+        <div class="edit-field full-width">
+          <label>Summary</label>
+          <textarea id="newSummary"></textarea>
+        </div>
+      </div>
+      <div class="edit-actions">
+        <button type="button" class="btn-action btn-cancel" onclick="closeAddShowModal()">Cancel</button>
+        <button type="submit" class="btn-action btn-save">Add Show</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// Load from localStorage
+let ALL = JSON.parse(localStorage.getItem('watchList')) || [
+  {n:1,  orig:"Great pretender",                    title:"Great Pretender",                           type:"Anime",   status:"done",     progress:"",            genres:["Action","Comedy","Thriller"]},
+  {n:2,  orig:"Beastars",                            title:"Beastars",                                  type:"Anime",   status:"done",     progress:"",            genres:["Drama","Thriller","Romance"]},
+  {n:3,  orig:"Erased",                              title:"Erased",                                    type:"Anime",   status:"watching", progress:"Ep 10",       genres:["Mystery","Thriller","Drama"]},
+  {n:4,  orig:"The way of the house husband",        title:"The Way of the Househusband",               type:"Anime",   status:"done",     progress:"",            genres:["Comedy","Drama","Action"]},
+  {n:5,  orig:"Your lie in April",                   title:"Your Lie in April",                         type:"Anime",   status:"done",     progress:"",            genres:["Romance","Drama","Music"]},
+  {n:6,  orig:"Highrise invasion",                   title:"High-Rise Invasion",                        type:"Anime",   status:"done",     progress:"",            genres:["Action","Horror","Thriller"]},
+  {n:7,  orig:"A silent voice",                      title:"A Silent Voice",                            type:"Movie",   status:"done",     progress:"",            genres:["Drama","Romance","Slice of Life"]},
+  {n:8,  orig:"One punch man",                       title:"One Punch Man",                             type:"Anime",   status:"watching", progress:"S2 Ep 5",     genres:["Action","Comedy","Sci-Fi"]},
+];
+
+let TOP_TEN = JSON.parse(localStorage.getItem('topTen')) || [];
+let filteredList = ALL;
+
+// Save to localStorage
+function saveData() {
+  localStorage.setItem('watchList', JSON.stringify(ALL));
+  localStorage.setItem('topTen', JSON.stringify(TOP_TEN));
+}
+
+function switchTab(tabName) {
+  // Hide all tabs
+  document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  
+  // Show selected tab
+  document.getElementById(tabName + '-tab').style.display = 'block';
+  event.target.classList.add('active');
+  
+  if (tabName === 'top-ten') {
+    renderTopTen();
+  } else {
+    render();
+  }
+}
+
+function updateStats() {
+  const stats = {
+    total: ALL.length,
+    done: ALL.filter(x => x.status === 'done').length,
+    watch: ALL.filter(x => x.status === 'watching').length,
+    drop: ALL.filter(x => x.status === 'dropped').length,
+  };
+  document.getElementById('st-total').textContent = stats.total;
+  document.getElementById('st-done').textContent = stats.done;
+  document.getElementById('st-watch').textContent = stats.watch;
+  document.getElementById('st-drop').textContent = stats.drop;
+}
+
+function filter() {
+  const search = document.getElementById('search').value.toLowerCase();
+  const status = document.getElementById('fStatus').value;
+  const type = document.getElementById('fType').value;
+  const genre = document.getElementById('fGenre').value;
+  
+  filteredList = ALL.filter(item => {
+    const matchSearch = !search || 
+      item.title.toLowerCase().includes(search) ||
+      item.orig.toLowerCase().includes(search) ||
+      item.summary.toLowerCase().includes(search) ||
+      item.genres.some(g => g.toLowerCase().includes(search));
+    
+    const matchStatus = !status || item.status === status;
+    const matchType = !type || item.type === type;
+    const matchGenre = !genre || item.genres.includes(genre);
+    
+    return matchSearch && matchStatus && matchType && matchGenre;
+  });
+  
+  document.getElementById('rcount').textContent = `Showing ${filteredList.length} of ${ALL.length}`;
+  render();
+}
+
+function render() {
+  const list = document.getElementById('list');
+  list.innerHTML = '';
+  
+  filteredList.forEach(item => {
+    const isInTopTen = TOP_TEN.some(t => t.n === item.n);
+    const card = document.createElement('div');
+    card.className = `card ${isInTopTen ? 'top-ten-card' : ''}`;
+    card.innerHTML = `
+      <div class="card-top">
+        ${isInTopTen ? `<div class="card-rank">#${TOP_TEN.findIndex(t => t.n === item.n) + 1}</div>` : `<div class="card-num">${item.n}</div>`}
+        <div class="card-main">
+          <div class="card-title">${item.title}</div>
+          <div class="card-orig">${item.orig}</div>
+        </div>
+        <div class="card-right">
+          <div class="status-pill sp-${item.status}">${item.status}</div>
+          <div class="type-pill">${item.type}</div>
+        </div>
+      </div>
+      <div class="card-body">
+        ${item.progress ? `<div class="card-progress">Progress: ${item.progress}</div>` : ''}
+        <div class="card-summary">${item.summary}</div>
+        <div class="genres">${item.genres.map(g => `<span class="genre-tag">${g}</span>`).join('')}</div>
+      </div>
+    `;
+    
+    card.onclick = (e) => {
+      if (e.target.closest('.btn-edit')) return;
+      card.classList.toggle('open');
+    };
+    
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn-edit';
+    editBtn.textContent = 'Edit';
+    editBtn.onclick = (e) => {
+      e.stopPropagation();
+      openEditPanel(item, card);
+    };
+    
+    card.querySelector('.card-right').appendChild(editBtn);
+    list.appendChild(card);
+  });
+}
+
+function openEditPanel(item, cardEl) {
+  if (cardEl.classList.contains('edit-open')) {
+    cardEl.classList.remove('edit-open');
+    return;
+  }
+  
+  cardEl.classList.add('edit-open');
+  
+  let editPanel = cardEl.querySelector('.edit-panel');
+  if (!editPanel) {
+    editPanel = document.createElement('div');
+    editPanel.className = 'edit-panel';
+    cardEl.appendChild(editPanel);
+  }
+  
+  editPanel.innerHTML = `
+    <div class="edit-grid">
+      <div class="edit-field">
+        <label>Title</label>
+        <input type="text" value="${item.title}" onchange="updateItem(${item.n}, 'title', this.value)">
+      </div>
+      <div class="edit-field">
+        <label>Original Title</label>
+        <input type="text" value="${item.orig}" onchange="updateItem(${item.n}, 'orig', this.value)">
+      </div>
+      <div class="edit-field">
+        <label>Type</label>
+        <select onchange="updateItem(${item.n}, 'type', this.value)">
+          <option value="Anime" ${item.type === 'Anime' ? 'selected' : ''}>Anime</option>
+          <option value="Movie" ${item.type === 'Movie' ? 'selected' : ''}>Movie</option>
+          <option value="Manga" ${item.type === 'Manga' ? 'selected' : ''}>Manga</option>
+          <option value="Special" ${item.type === 'Special' ? 'selected' : ''}>Special</option>
+        </select>
+      </div>
+      <div class="edit-field">
+        <label>Status</label>
+        <select onchange="updateItem(${item.n}, 'status', this.value)">
+          <option value="watching" ${item.status === 'watching' ? 'selected' : ''}>Watching</option>
+          <option value="done" ${item.status === 'done' ? 'selected' : ''}>Done</option>
+          <option value="dropped" ${item.status === 'dropped' ? 'selected' : ''}>Dropped</option>
+        </select>
+      </div>
+      <div class="edit-field">
+        <label>Progress</label>
+        <input type="text" value="${item.progress}" onchange="updateItem(${item.n}, 'progress', this.value)">
+      </div>
+      <div class="edit-field full-width">
+        <label>Genres (comma-separated)</label>
+        <input type="text" value="${item.genres.join(', ')}" onchange="updateItem(${item.n}, 'genres', this.value.split(',').map(g => g.trim()))">
+      </div>
+      <div class="edit-field full-width">
+        <label>Summary</label>
+        <textarea onchange="updateItem(${item.n}, 'summary', this.value)">${item.summary}</textarea>
+      </div>
+    </div>
+    <div class="edit-actions">
+      <button class="btn-action btn-delete" onclick="deleteShow(${item.n})">Delete</button>
+      ${TOP_TEN.some(t => t.n === item.n) ? 
+        `<button class="btn-action btn-remove-top" onclick="removeFromTopTen(${item.n})">Remove from Top 10</button>` :
+        `<button class="btn-action btn-add-top" onclick="addToTopTen(${item.n})">Add to Top 10</button>`
+      }
+      <button class="btn-action btn-cancel" onclick="closeEditPanel(this)">Done</button>
+    </div>
+  `;
+}
+
+function closeEditPanel(btn) {
+  btn.closest('.card').classList.remove('edit-open');
+}
+
+function updateItem(n, field, value) {
+  const item = ALL.find(x => x.n === n);
+  if (item) {
+    item[field] = value;
+    saveData();
+    render();
+  }
+}
+
+function deleteShow(n) {
+  if (confirm('Delete this show?')) {
+    ALL = ALL.filter(x => x.n !== n);
+    TOP_TEN = TOP_TEN.filter(x => x.n !== n);
+    saveData();
+    updateStats();
+    render();
+  }
+}
+
+function addToTopTen(n) {
+  if (TOP_TEN.length >= 10) {
+    alert('Top 10 is full! Remove a show first.');
+    return;
+  }
+  const item = ALL.find(x => x.n === n);
+  if (item && !TOP_TEN.some(t => t.n === n)) {
+    TOP_TEN.push(item);
+    saveData();
+    render();
+  }
+}
+
+function removeFromTopTen(n) {
+  TOP_TEN = TOP_TEN.filter(x => x.n !== n);
+  saveData();
+  render();
+  renderTopTen();
+}
+
+function renderTopTen() {
+  const container = document.getElementById('top-ten-list');
+  container.innerHTML = '';
+  
+  if (TOP_TEN.length === 0) {
+    container.innerHTML = '<p style="padding: 1rem; color: var(--muted);">No shows in top 10 yet. Go to All Shows and click "Add to Top 10"</p>';
+    return;
+  }
+  
+  TOP_TEN.forEach((item, idx) => {
+    const div = document.createElement('div');
+    div.className = 'top-ten-item';
+    div.draggable = true;
+    div.ondragstart = (e) => {
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', idx);
+    };
+    div.ondragover = (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      div.style.opacity = '0.5';
+    };
+    div.ondragleave = () => {
+      div.style.opacity = '1';
+    };
+    div.ondrop = (e) => {
+      e.preventDefault();
+      const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+      const toIdx = idx;
+      [TOP_TEN[fromIdx], TOP_TEN[toIdx]] = [TOP_TEN[toIdx], TOP_TEN[fromIdx]];
+      saveData();
+      renderTopTen();
+    };
+    
+    div.innerHTML = `
+      <div class="top-ten-rank">${idx + 1}</div>
+      <div class="top-ten-info">
+        <div class="top-ten-title">${item.title}</div>
+        <div class="top-ten-meta">${item.type} • ${item.status}</div>
+      </div>
+      <button class="btn-remove-rank" onclick="removeFromTopTen(${item.n})">✕</button>
+    `;
+    container.appendChild(div);
+  });
+}
+
+function openAddShowModal() {
+  document.getElementById('addShowModal').classList.add('show');
+}
+
+function closeAddShowModal() {
+  document.getElementById('addShowModal').classList.remove('show');
+  document.getElementById('newTitle').value = '';
+  document.getElementById('newOrig').value = '';
+  document.getElementById('newType').value = '';
+  document.getElementById('newStatus').value = 'watching';
+  document.getElementById('newProgress').value = '';
+  document.getElementById('newGenres').value = '';
+  document.getElementById('newSummary').value = '';
+}
+
+function addShow(e) {
+  e.preventDefault();
+  
+  const nextN = ALL.length > 0 ? Math.max(...ALL.map(x => x.n)) + 1 : 1;
+  const newShow = {
+    n: nextN,
+    title: document.getElementById('newTitle').value,
+    orig: document.getElementById('newOrig').value || document.getElementById('newTitle').value,
+    type: document.getElementById('newType').value,
+    status: document.getElementById('newStatus').value,
+    progress: document.getElementById('newProgress').value,
+    genres: document.getElementById('newGenres').value.split(',').map(g => g.trim()).filter(g => g),
+    summary: document.getElementById('newSummary').value,
+  };
+  
+  ALL.push(newShow);
+  saveData();
+  updateStats();
+  closeAddShowModal();
+  filter();
+}
+
+// Initialize
+updateStats();
+render();
+</script>
+</body>
+</html>
