@@ -129,7 +129,7 @@
   .fixed-note { font-size: 11px; color: var(--done); margin-top: 4px; }
   
   .top-ten-list { padding: 1rem; }
-  .top-ten-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px; cursor: grab; transition: opacity 0.1s; }
+  .top-ten-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px; cursor: grab; }
   .top-ten-item:active { cursor: grabbing; }
   .top-ten-rank { font-size: 18px; font-weight: 700; color: var(--accent2); min-width: 30px; }
   .top-ten-info { flex: 1; }
@@ -271,14 +271,14 @@
 <script>
 // Load from localStorage
 let ALL = JSON.parse(localStorage.getItem('watchList')) || [
-  {n:1,  orig:"Great pretender",                    title:"Great Pretender",                           type:"Anime",   status:"done",     progress:"",            genres:["Action","Comedy","Thriller"]},
-  {n:2,  orig:"Beastars",                            title:"Beastars",                                  type:"Anime",   status:"done",     progress:"",            genres:["Drama","Thriller","Romance"]},
-  {n:3,  orig:"Erased",                              title:"Erased",                                    type:"Anime",   status:"watching", progress:"Ep 10",       genres:["Mystery","Thriller","Drama"]},
-  {n:4,  orig:"The way of the house husband",        title:"The Way of the Househusband",               type:"Anime",   status:"done",     progress:"",            genres:["Comedy","Drama","Action"]},
-  {n:5,  orig:"Your lie in April",                   title:"Your Lie in April",                         type:"Anime",   status:"done",     progress:"",            genres:["Romance","Drama","Music"]},
-  {n:6,  orig:"Highrise invasion",                   title:"High-Rise Invasion",                        type:"Anime",   status:"done",     progress:"",            genres:["Action","Horror","Thriller"]},
-  {n:7,  orig:"A silent voice",                      title:"A Silent Voice",                            type:"Movie",   status:"done",     progress:"",            genres:["Drama","Romance","Slice of Life"]},
-  {n:8,  orig:"One punch man",                       title:"One Punch Man",                             type:"Anime",   status:"watching", progress:"S2 Ep 5",     genres:["Action","Comedy","Sci-Fi"]},
+  {n:1,  orig:"Great pretender",                    title:"Great Pretender",                           type:"Anime",   status:"done",     progress:"",            genres:["Action","Comedy","Thriller"],            summary:"A clever swindler leads a crew of con artists across the globe."},
+  {n:2,  orig:"Beastars",                            title:"Beastars",                                  type:"Anime",   status:"done",     progress:"",            genres:["Drama","Thriller","Romance"],             summary:"A school where students are different kinds of animals."},
+  {n:3,  orig:"Erased",                              title:"Erased",                                    type:"Anime",   status:"watching", progress:"Ep 10",       genres:["Mystery","Thriller","Drama"],              summary:"Someone with the ability to go back in time tries to prevent a tragedy."},
+  {n:4,  orig:"The way of the house husband",        title:"The Way of the Househusband",               type:"Anime",   status:"done",     progress:"",            genres:["Comedy","Drama","Action"],                 summary:"A former gangster becomes a househusband."},
+  {n:5,  orig:"Your lie in April",                   title:"Your Lie in April",                         type:"Anime",   status:"done",     progress:"",            genres:["Romance","Drama","Music"],                 summary:"A pianist and a violinist form an unlikely bond."},
+  {n:6,  orig:"Highrise invasion",                   title:"High-Rise Invasion",                        type:"Anime",   status:"done",     progress:"",            genres:["Action","Horror","Thriller"],              summary:"People are trapped on top of skyscrapers with masked gunmen."},
+  {n:7,  orig:"A silent voice",                      title:"A Silent Voice",                            type:"Movie",   status:"done",     progress:"",            genres:["Drama","Romance","Slice of Life"],         summary:"A boy and deaf girl navigate their relationship and past."},
+  {n:8,  orig:"One punch man",                       title:"One Punch Man",                             type:"Anime",   status:"watching", progress:"S2 Ep 5",     genres:["Action","Comedy","Sci-Fi"],                summary:"A hero who defeats enemies with a single punch."},
 ];
 
 let TOP_TEN = JSON.parse(localStorage.getItem('topTen')) || [];
@@ -573,10 +573,19 @@ function addShow(e) {
     summary: document.getElementById('newSummary').value,
   };
   
+  console.log('New show genres:', newShow.genres);
+  
   ALL.push(newShow);
   saveData();
   updateStats();
   closeAddShowModal();
+  
+  // Reset all filters before filtering
+  document.getElementById('search').value = '';
+  document.getElementById('fStatus').value = '';
+  document.getElementById('fType').value = '';
+  document.getElementById('fGenre').value = '';
+  
   filter();
 }
 
